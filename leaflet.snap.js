@@ -295,7 +295,6 @@ L.Handler.MarkerSnap = L.Handler.extend({
         if (this._markers.indexOf(marker) == -1)
             this._markers.push(marker);
         marker.on('move', this._snapMarker, this);
-        this._map.on('touchmove', this._snapMarker, this);
     },
 
     unwatchMarker: function (marker) {
@@ -314,7 +313,7 @@ L.Handler.MarkerSnap = L.Handler.extend({
     _snapMarker: function(e) {
         var closest = L.Snap.snapMarker(e, this._guides, this._map, this.options, this._buffer);
 
-        if (e.originalEvent && e.originalEvent.clientX && closest.layer && closest.latlng) {
+        if (closest && e.originalEvent && e.originalEvent.clientX && closest.layer && closest.latlng) {
             var snapTouchPoint = this._map.project(closest.latlng, this._map.getZoom());
             e.originalEvent.clientX = snapTouchPoint.x;
             e.originalEvent.clientY = snapTouchPoint.y;
@@ -500,8 +499,9 @@ L.EditToolbar.SnapEdit = L.EditToolbar.Edit.extend({
                         }
                     }
                     else {
-                        layer.editing._markerGroup.clearLayers();
-                        layer.editing._verticesHandlers[0]._markerGroup.clearLayers();
+                        // layer.editing._markerGroup.clearLayers();
+                        // layer.editing._verticesHandlers[0]._markerGroup.clearLayers();
+                        layer.editing._poly.editing._verticesHandlers[0]._markerGroup.clearLayers();
                         delete layer.editing;
                         layer.editing = layer.snapediting = new L.Handler.PolylineSnap(layer._map, layer, this.snapOptions);
                     }
