@@ -184,13 +184,13 @@ L.Snap.updateSnap = function (marker, layer, latlng) {
         // don't call setLatLng so that we don't fire an unnecessary 'move' event
         marker._latlng = L.latLng(latlng);
         marker.update();
-        if (marker.snap != layer) {
-            marker.snap = layer;
-            if (marker._icon) {
-                L.DomUtil.addClass(marker._icon, 'marker-snapped');
-            }
-            marker.fire('snap', {layer:layer, latlng: latlng});
+        // if (marker.snap != layer) {
+        marker.snap = layer;
+        if (marker._icon) {
+            L.DomUtil.addClass(marker._icon, 'marker-snapped');
         }
+        marker.fire('snap', {layer:layer, latlng: latlng});
+        // }
     }
     else {
         if (marker.snap) {
@@ -240,10 +240,40 @@ L.Snap.snapMarker = function (e, guides, map, options, buffer) {
     return closest;
 };
 
+L.Snap.snapMarkerWithOrigin = function (e, origin, map, options, buffer) {
+  var marker = e.target;
+  var latlng = e.target._latlng || e.latlng;
+  var layers = [origin];
+
+  if (! latlng) {
+      return;
+  }
+  var closest = L.Snap.findClosestLayerSnap(map, layers, latlng, options.snapOriginDistance, options.snapVertices);
+
+  closest = closest || {layer: null, latlng: null};
+  L.Snap.updateSnap(marker, closest.layer, closest.latlng);
+
+  if (e.latlng && closest.latlng) {
+      e.latlng = closest.latlng;
+  }
+
+  if(closest.latlng) {
+    marker.snappedWithOrigin = true
+    console.error(marker.snappedWithOrigin);
+  else {
+    marker.snappedWithOrigin = false
+  }
+
+
+  return closest;
+
+}
+
 L.Handler.MarkerSnap = L.Handler.extend({
     options: {
         snapDistance: 15, // in pixels
-        snapVertices: true
+        snapVertices: true,
+        snapOriginDistance: 15
     },
 
     initialize: function (map, marker, options) {
@@ -294,6 +324,7 @@ L.Handler.MarkerSnap = L.Handler.extend({
     watchMarker: function (marker) {
         if (this._markers.indexOf(marker) == -1)
             this._markers.push(marker);
+        marker.on('move', this._snapOrigin, this);
         marker.on('move', this._snapMarker, this);
     },
 
@@ -313,12 +344,32 @@ L.Handler.MarkerSnap = L.Handler.extend({
     _snapMarker: function(e) {
         var closest = L.Snap.snapMarker(e, this._guides, this._map, this.options, this._buffer);
 
+        console.error(e.originalEvent);
         if (closest && e.originalEvent && e.originalEvent.clientX && closest.layer && closest.latlng) {
             var snapTouchPoint = this._map.project(closest.latlng, this._map.getZoom());
             e.originalEvent.clientX = snapTouchPoint.x;
             e.originalEvent.clientY = snapTouchPoint.y;
             e.originalEvent.snapped = true;
         }
+    },
+
+    addOrigin: function(marker) {
+      this._origin = marker;
+    },
+
+    _snapOrigin: function(e) {
+      if(!this._origin){
+        return;
+      }
+
+      var closest = L.Snap.snapMarkerWithOrigin(e, this._origin, this._map, this.options, this._buffer);
+
+      if (closest && e.originalEvent && e.originalEvent.clientX && closest.layer && closest.latlng) {
+          var snapTouchPoint = this._map.project(closest.latlng, this._map.getZoom());
+          e.originalEvent.clientX = snapTouchPoint.x;
+          e.originalEvent.clientY = snapTouchPoint.y;
+          e.originalEvent.snapped = true;
+      }
     }
 });
 
@@ -570,6 +621,8 @@ L.Draw.Feature.SnapMixin = {
         marker.on('snap', function (e) {
             marker.setIcon(this.options.icon);
             marker.setOpacity(1);
+            var snapPoint = this._map.latLngToLayerPoint(marker._latlng);
+            this._updateGuide(snapPoint);
         }, this);
 
         marker.on('unsnap', function (e) {
@@ -593,12 +646,28 @@ L.Draw.Feature.SnapMixin = {
             var markerCount = this._markers.length;
             var marker = this._markers[markerCount - 1];
 
+            console.error(marker);
+
+            if(markerCount > 2)
+            {
+              this._snapper.addOrigin(this._markers[0])
+            }
             if (marker && this._mouseMarker.snap) {
                 L.DomUtil.addClass(marker._icon, 'marker-snapped');
 
                 if(L.Browser.touch)
                 {
-                  marker.setLatLng(this._mouseMarker._latlng)
+                  L.marker([this._mouseMarker._latlng.lat, this._mouseMarker._latlng.lng]).addTo(this._map);
+
+                  marker.setLatLng(this._mouseMarker._latlng);
+                  // var snapPoint = this._map.latLngToLayerPoint(marker._latlng);
+                  // newLat = this._map.layerPointToLatLng(snapPoint);
+                  // L.marker(newLat).addTo(this._map);
+
+                  // this._updateGuide(snapPoint);
+                  console.error(this._mouseDownOrigin, e.originalEvent, this._poly);
+                  this.deleteLastVertex();
+                  this.addVertex(marker._latlng);
                 }
             }
         }
@@ -612,7 +681,6 @@ L.Draw.Feature.SnapMixin = {
                 this._startLatLng = closest.latlng;
             }
         }
-
         // for poly vertices
         if (this._mouseDownOrigin) {
             var z = this._map.getZoom();
