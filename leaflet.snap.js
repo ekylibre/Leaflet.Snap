@@ -258,10 +258,10 @@ L.Snap.snapMarkerWithOrigin = function (e, origin, map, options, buffer) {
   }
 
   if(closest.latlng) {
-    marker.snappedWithOrigin = true
-    console.error(marker.snappedWithOrigin);
+    marker.snappedWithOrigin = true;
+  }
   else {
-    marker.snappedWithOrigin = false
+    marker.snappedWithOrigin = false;
   }
 
 
@@ -344,7 +344,6 @@ L.Handler.MarkerSnap = L.Handler.extend({
     _snapMarker: function(e) {
         var closest = L.Snap.snapMarker(e, this._guides, this._map, this.options, this._buffer);
 
-        console.error(e.originalEvent);
         if (closest && e.originalEvent && e.originalEvent.clientX && closest.layer && closest.latlng) {
             var snapTouchPoint = this._map.project(closest.latlng, this._map.getZoom());
             e.originalEvent.clientX = snapTouchPoint.x;
@@ -646,28 +645,24 @@ L.Draw.Feature.SnapMixin = {
             var markerCount = this._markers.length;
             var marker = this._markers[markerCount - 1];
 
-            console.error(marker);
-
             if(markerCount > 2)
             {
-              this._snapper.addOrigin(this._markers[0])
+              this._snapper.addOrigin(this._markers[0]);
             }
             if (marker && this._mouseMarker.snap) {
                 L.DomUtil.addClass(marker._icon, 'marker-snapped');
 
                 if(L.Browser.touch)
                 {
-                  L.marker([this._mouseMarker._latlng.lat, this._mouseMarker._latlng.lng]).addTo(this._map);
 
                   marker.setLatLng(this._mouseMarker._latlng);
-                  // var snapPoint = this._map.latLngToLayerPoint(marker._latlng);
-                  // newLat = this._map.layerPointToLatLng(snapPoint);
-                  // L.marker(newLat).addTo(this._map);
 
-                  // this._updateGuide(snapPoint);
-                  console.error(this._mouseDownOrigin, e.originalEvent, this._poly);
-                  this.deleteLastVertex();
-                  this.addVertex(marker._latlng);
+            			var poly = this._poly;
+            			var latlngs = poly.getLatLngs();
+                	latlngs.splice(-1, 1);
+              		this._poly.setLatLngs(latlngs);
+              		this._poly.addLatLng(this._mouseMarker._latlng);
+
                 }
             }
         }
