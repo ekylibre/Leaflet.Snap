@@ -648,6 +648,7 @@ L.Draw.Feature.SnapMixin = {
             if(markerCount > 2)
             {
               this._snapper.addOrigin(this._markers[0]);
+              L.DomUtil.addClass(this._markers[0]._icon, 'marker-origin');
             }
             if (marker && this._mouseMarker.snap) {
                 L.DomUtil.addClass(marker._icon, 'marker-snapped');
