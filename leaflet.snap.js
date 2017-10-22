@@ -61,8 +61,8 @@ L.Snap.processGuide = function (latlng, marker, guide, snaplist, buffer) {
     // Search snaplist around mouse
     else if (typeof guide.searchBuffer === 'function') {
         var nearlayers = guide.searchBuffer(latlng, buffer);
-        snaplist = snaplist.concat(nearlayers.filter(function(layer) {
-            return L.Snap.isDifferentLayer(layer);
+        snaplist.push.apply(snaplist, nearlayers.filter(function(layer) {
+            return L.Snap.isDifferentLayer(marker, layer);
         }));
     }
 
