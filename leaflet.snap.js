@@ -585,6 +585,11 @@ L.Draw.Feature.SnapMixin = {
         this.on('disabled', this._snap_on_disabled, this);
     },
 
+    _firstOpacity: function(e) {
+        e.target.setOpacity(1);
+        e.target.off('move', this._firstOpacity, this);
+    },
+
     _snap_on_enabled: function () {
         if (!this.options.guideLayers) {
             return;
@@ -615,18 +620,18 @@ L.Draw.Feature.SnapMixin = {
         var marker = this._mouseMarker;
         this._snapper.watchMarker(marker);
 
+        marker.on('move', this._firstOpacity, this)
+
         // Show marker when (snap for user feedback)
         var icon = marker.options.icon;
         marker.on('snap', function (e) {
             marker.setIcon(this.options.icon);
-            marker.setOpacity(1);
             var snapPoint = this._map.latLngToLayerPoint(marker._latlng);
             this._updateGuide(snapPoint);
         }, this);
 
         marker.on('unsnap', function (e) {
             marker.setIcon(icon);
-            marker.setOpacity(0);
         }, this);
 
         if(L.Browser.touch){
